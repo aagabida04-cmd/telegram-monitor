@@ -1,0 +1,35 @@
+name: Daily Telegram Channel Check
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check-channels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run monitor script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python monitor_telegram.py
+
+      - name: Commit updated seen-messages state
+        run: |
+          git config user.name "telegram-monitor-bot"
+          git config user.email "actions@github.com"
+          git add seen_messages.json
+          git diff --staged --quiet || git commit -m "update seen messages [skip ci]"
+          git push
